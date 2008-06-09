@@ -11,6 +11,7 @@ namespace MyAddin
     {
         private DTE2 application;
         private Dictionary<string, AbstractCommand> commands = new Dictionary<string, AbstractCommand>();
+        private List<CommandBarEvents> menuItemHandlerList = new List<CommandBarEvents>();
 
         public MenuManager(DTE2 application)
         {
@@ -20,7 +21,9 @@ namespace MyAddin
 
         public CommandBarPopup CreatePopupMenu(string commandBarName, string menuName)
         {
-            CommandBarPopup menu = GetCommandBar(commandBarName).Controls.Add(MsoControlType.msoControlPopup, Missing.Value, Missing.Value, 1, true) as CommandBarPopup;
+            CommandBar commandBar = GetCommandBar(commandBarName);
+            int position = commandBar.Controls.Count + 1;
+            CommandBarPopup menu = commandBar.Controls.Add(MsoControlType.msoControlPopup, Missing.Value, Missing.Value, position, true) as CommandBarPopup;
             menu.Caption = menuName;
             menu.TooltipText = "";
             return menu;
@@ -43,7 +46,8 @@ namespace MyAddin
             menuItem.TooltipText = command.Tooltips;
 
             CommandBarEvents events = application.DTE.Events.get_CommandBarEvents(menuItem) as CommandBarEvents;
-            events.Click += new _dispCommandBarControlEvents_ClickEventHandler(MenuItemClick);
+            events.Click += new _dispCommandBarControlEvents_ClickEventHandler(events_Click);
+            menuItemHandlerList.Add(events);
 
             if (!commands.ContainsKey(command.Caption))
             {
@@ -53,7 +57,7 @@ namespace MyAddin
 
         }
 
-        void MenuItemClick(object commandBarControl, ref bool handled, ref bool cancelDefault)
+        void events_Click(object commandBarControl, ref bool Handled, ref bool CancelDefault)
         {
             CommandBarControl control = commandBarControl as CommandBarControl;
             if (commands.ContainsKey(control.Caption))
@@ -61,6 +65,7 @@ namespace MyAddin
                 commands[control.Caption].act();
             }
         }
+
 
         private CommandBar GetCommandBar(string name)
         {
